@@ -1,8 +1,61 @@
 #include <Arduino.h>
-#include "arduinoFFT.h"
 #include <Adafruit_CircuitPlayground.h>
-#include <Adafruit_ZeroFFT.h>
+#include "Adafruit_ZeroFFT.h"
+#include "arduinoFFT.h"
+/*
+accelerator is center of board
+  - circled z is into the board
 
+Buttons
+
+Speaker for indicating tremor
+
+Slide switch
+
+NEO pixels
+
+Adafruit classic library
+  - Hello accelerometer for basic code to interface with accelerometer
+  - intensity meter
+  - color and intensity
+
+Plotting with Teleplot: Serial.print(">X: ");
+
+Teleplot shows a clear sine wave for a tremor
+
+Fourier transform will tell us the frequency after being fed the data
+
+Get things working with the libraries and then backdoor through the registers
+
+Don't use anything that #includes something we don't have
+
+Be vigilant about which timer we are using.
+
+Testing Ideas:
+  - Put the device on something spinning or tapping at six revolutions per second
+  - arduino fft driver
+
+Starting ideas:
+  - take readings 10 times a second
+  - check for a tremor in five second intervals
+  - implement the algorithm
+  - Schematic
+  - Plan out pseudo code
+  - Bandpass filter
+  - How to tell if it's not a tremor
+
+Plan:
+  - Right Button to start measuring
+    - lights to indicate it's running
+  - Left Button to stop and reset
+  - Speaker and neopixels to indicate a tremor
+
+FFT returns values that correspond to certain freqs
+*/
+
+/*
+These values can be changed in order to evaluate the functions
+*/
 const uint16_t samples = 64;
 const double sampling = 40;
 const uint8_t amplitude = 4;
@@ -31,62 +84,32 @@ unsigned long startTime;
 
 void announceTremor(int intensity);
 
-
-
-void setupButtons() {
-  // Set left button (D4) and right button (F6) as inputs
-  DDRD &= ~(1 << PIND4);
-  DDRF &= ~(1 << PINF6);
-
-  // Enable internal pull-up resistors
-  PORTD |= (1 << PIND4);
-  PORTF |= (1 << PINF6);
+void leftButtonFunction()
+{
+  // stops evaluating
 }
 
-void setupLED() {
-  DDRC |= (1 << PINC7);
-
-}
-void checkButtonsPressed() {
-  // Left button is pressed?
-  if (PIND & (1 << PIND4)) {
-    // Turn on LED
-    PORTC |= (1 << 7);
-
-    // Start capture
-    setupTimer();
-  }
-
-  // Right button pressed?
-  if (PINF & (1 << PINF6)) {
-    // Turn off LED
-    PORTC &= ~(1 << 7);
-
-    // Stop capture
-
-  }
+void rightButtonFunction()
+{
+  // starts evaluating
 }
 
-
-void setup() {
+void setup()
+{
   Serial.begin(115200);
-  while (!Serial)
-    ;
+  while (!Serial);
 
   Serial.println("Ready");
 
   CircuitPlayground.begin();
 
-  setupButtons();
-
   attachInterrupt(digitalPinToInterrupt(4), leftButtonFunction, CHANGE);
 
   attachInterrupt(digitalPinToInterrupt(19), rightButtonFunction, CHANGE);
-
 }
 
-void loop() {
-  checkButtonsPressed();
+void loop()
+{
 }
 
 /*
@@ -174,7 +197,6 @@ void setupTimer()
   TIMSK0 |= (1 << OCIE0B); // Enables interrupt on compare B
 
   // 16 BIT TIMER
-  // Sampling every 2.5 ms
   TCCR1A = 0b00100000;
   //         00
   //           10, clear OCRB on compare match
@@ -183,11 +205,6 @@ void setupTimer()
   TCCR1B = 0b00001001;
   //         000 - Unused bits
   //            01 - Bits 32 of CTC
-  //              001 - No clk prescale
-  OCR1A = 610; // Top Value
-  OCR1B = 0;// Counter
-  TIMSK1 |= (1 << OCIE1B); // Enables interrupt on compare B
-
 }
 
 void announceTremor(int intensity)
