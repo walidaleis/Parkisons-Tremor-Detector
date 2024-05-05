@@ -56,11 +56,11 @@
 /*
 These values can be changed in order to evaluate the functions
 */
-const uint16_t samples = 64;
+const uint16_t samples = 1000;
 const double sampling = 40;
 const uint8_t amplitude = 4;
-const double startFrequency = 3;
-const double stopFrequency = 6;
+const double startFrequency = 3.5;
+const double stopFrequency = 7.5;
 const double step_size = 0.1;
 
 uint16_t samplesCounter = 0;
@@ -149,16 +149,13 @@ void setup()
   // Enable LED
   DDRC |= (1 << PINC7);
 
+  // Initial Serial protocol
   Serial.begin(115200);
   while (!Serial);
 
   Serial.println("Ready");
 
   CircuitPlayground.begin();
-
-  // attachInterrupt(digitalPinToInterrupt(4), leftButtonFunction, CHANGE);
-
-  // attachInterrupt(digitalPinToInterrupt(19), rightButtonFunction, CHANGE);
 }
 
 
