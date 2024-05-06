@@ -118,6 +118,8 @@ void checkButtons() {
     // Turn on LED
     PORTC |= (1 << 7);
 
+    delay(100);
+    
     // Start capture
     setupTimer();
   }
@@ -138,6 +140,14 @@ void checkButtons() {
 
 void setup()
 {
+  // Initial Serial protocol
+  Serial.begin(115200);
+  while (!Serial);
+  CircuitPlayground.begin();
+
+  Serial.println("Ready");
+
+
   // Set up left button (D4) and right button (F6) as inputs
   DDRD &= ~(1 << PIND4);
   DDRF &= ~(1 << PINF6);
@@ -148,16 +158,13 @@ void setup()
 
   // Enable LED
   DDRC |= (1 << PINC7);
-
-  // Initial Serial protocol
-  Serial.begin(115200);
-  while (!Serial);
-
-  Serial.println("Ready");
-
-  CircuitPlayground.begin();
+  Serial.println("setup complete");
 }
 
+
+void loop() {
+  checkButtons();
+}
 
 /*
 one to three minutes of windowing
@@ -165,6 +172,7 @@ one to three minutes of windowing
 */
 void calculateFFT()
 {
+  cli();
   Serial.println("Frequency\tDetected\ttakes (ms)");
   Serial.println("=======================================\n");
 
@@ -202,6 +210,7 @@ void calculateFFT()
     Serial.println(" ms");
     // delay(2000); /* Repeat after delay */
   }
+  sei();
 }
 
 
@@ -245,8 +254,4 @@ ISR(TIMER0_COMPA_vect)
       Serial.println("5s passed");
     }
   }
-}
-
-void loop() {
-  checkButtons();
 }
