@@ -2,77 +2,80 @@
 #include <Adafruit_CircuitPlayground.h>
 #include "Adafruit_ZeroFFT.h"
 #include "arduinoFFT.h"
-/*
-accelerator is center of board
-  - circled z is into the board
+// /*
+// accelerator is center of board
+//   - circled z is into the board
 
-Buttons
+// Buttons
 
-Speaker for indicating tremor
+// Speaker for indicating tremor
 
-Slide switch
+// Slide switch
 
-NEO pixels
+// NEO pixels
 
-Adafruit classic library
-  - Hello accelerometer for basic code to interface with accelerometer
-  - intensity meter
-  - color and intensity
+// Adafruit classic library
+//   - Hello accelerometer for basic code to interface with accelerometer
+//   - intensity meter
+//   - color and intensity
 
-Plotting with Teleplot: Serial.print(">X: ");
+// Plotting with Teleplot: Serial.print(">X: ");
 
-Teleplot shows a clear sine wave for a tremor
+// Teleplot shows a clear sine wave for a tremor
 
-Fourier transform will tell us the frequency after being fed the data
+// Fourier transform will tell us the frequency after being fed the data
 
-Get things working with the libraries and then backdoor through the registers
+// Get things working with the libraries and then backdoor through the registers
 
-Don't use anything that #includes something we don't have
+// Don't use anything that #includes something we don't have
 
-Be vigilant about which timer we are using.
+// Be vigilant about which timer we are using.
 
-Testing Ideas:
-  - Put the device on something spinning or tapping at six revolutions per second
-  - arduino fft driver
+// Testing Ideas:
+//   - Put the device on something spinning or tapping at six revolutions per second
+//   - arduino fft driver
 
-Starting ideas:
-  - take readings 10 times a second
-  - check for a tremor in five second intervals
-  - implement the algorithm
-  - Schematic
-  - Plan out pseudo code
-  - Bandpass filter
-  - How to tell if it's not a tremor
+// Starting ideas:
+//   - take readings 10 times a second
+//   - check for a tremor in five second intervals
+//   - implement the algorithm
+//   - Schematic
+//   - Plan out pseudo code
+//   - Bandpass filter
+//   - How to tell if it's not a tremor
 
-Plan:
-  - Right Button to start measuring
-    - lights to indicate it's running
-  - Left Button to stop and reset
-  - Speaker and neopixels to indicate a tremor
+// Plan:
+//   - Left Button to start measuring
+//     - lights to indicate it's running
+//   - Right Button to stop and reset
+//   - Speaker and neopixels to indicate a tremor
 
-FFT returns values that correspond to certain freqs
-*/
+// FFT returns values that correspond to certain freqs
+// */
 
 /*
 These values can be changed in order to evaluate the functions
 */
-const uint16_t samples = 64;
+const uint16_t samples = 1000;
 const double sampling = 40;
 const uint8_t amplitude = 4;
-const double startFrequency = 3;
-const double stopFrequency = 6;
+const double startFrequency = 3.5;
+const double stopFrequency = 7.5;
 const double step_size = 0.1;
 
 uint16_t samplesCounter = 0;
 
-/*
-These are the input and output vectors
-Input vectors receive computed results from FFT
-*/
+int count = 0;
+int data_count = 0;
+
+// /*
+// These are the input and output vectors
+// Input vectors receive computed results from FFT
+// */
 double vReal[samples];
 double vImag[samples];
 
-/* Create FFT object */
+// /* Create FFT object */
 ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, samples, sampling);
 
 unsigned long startTime;
@@ -84,33 +87,77 @@ unsigned long startTime;
 
 void announceTremor(int intensity);
 
-void leftButtonFunction()
+void setupTimer()
 {
-  // stops evaluating
+  Serial.println("Starting timer");
+  // Using Timer0 to trigger a fourier transform every five seconds
+  // 8 Bit Counter
+  TCCR0A = 0b00000010; // CTC count to OCR0A
+  //         00 - Normal Port Operation
+  //           00 - Normal Port Operation
+  //             00 - Unused
+  //               10 - Bits 1:0 of WGM (010)
+  TCCR0B = 0b00000011; 
+  //         0000 - Unused
+  //             0 - Bit 2 of WGM
+  //              011 - Clk prescaler to 64
+  OCR0A = 125;              // TOP value
+  TIMSK0 = 0b00000010; 
+  //         00000 - Unused
+  //              0 - Disable interrupts on compare match B
+  //               1 - Enable interrupts on compare match A
+  //                0 - Disable overflow interrupts
 }
 
-void rightButtonFunction()
-{
-  // starts evaluating
+
+void checkButtons() {
+  // Left button is pressed?
+  if (PIND & (1 << PIND4)) {
+    Serial.println("LEft button pressed");
+
+    // Turn on LED
+    PORTC |= (1 << 7);
+
+    // Start capture
+    setupTimer();
+  }
+
+  // Right button pressed?
+  if (PINF & (1 << PINF6)) {
+    Serial.println("right button pressed");
+    // Turn off LED
+    PORTC &= ~(1 << 7);
+
+    // Disable timer interrupts
+    TIMSK0 = 0;
+
+    // Clear array
+    
+  }
 }
 
 void setup()
 {
+  // Set up left button (D4) and right button (F6) as inputs
+  DDRD &= ~(1 << PIND4);
+  DDRF &= ~(1 << PINF6);
+
+  // Enable internal pull-up resistors
+  PORTD |= (1 << PIND4);
+  PORTF |= (1 << PINF6);
+
+  // Enable LED
+  DDRC |= (1 << PINC7);
+
+  // Initial Serial protocol
   Serial.begin(115200);
   while (!Serial);
 
   Serial.println("Ready");
 
   CircuitPlayground.begin();
-
-  attachInterrupt(digitalPinToInterrupt(4), leftButtonFunction, CHANGE);
-
-  attachInterrupt(digitalPinToInterrupt(19), rightButtonFunction, CHANGE);
 }
 
-void loop()
-{
-}
 
 /*
 one to three minutes of windowing
@@ -157,55 +204,6 @@ void calculateFFT()
   }
 }
 
-ISR(TIMER0_COMPB_vect) // collecting data
-{
-  float X, Y, Z;
-  X = CircuitPlayground.motionX();
-  Y = CircuitPlayground.motionY();
-  Z = CircuitPlayground.motionZ();
-  
-  float a = sqrt(X * X + Y * Y + Z * Z);
-
-  if (samplesCounter > samples)
-  {
-    samplesCounter = 0;
-  }
-  vReal[samplesCounter] = a;
-  vImag[samplesCounter] = 0;
-}
-
-ISR(TIMER1_COMPB_vect) // calculating FFT
-{
-  void calculateFFT();
-}
-
-void setupTimer()
-{
-  // Using Timer0 to trigger a fourier transform every five seconds
-  // 8 Bit Counter
-  TCCR0A = 0b00100010;
-  //         00 - Normal Port Operation
-  //           10 - Clear OC0B on compare match
-  //             00 - Unused
-  //               10 - Bits 1:0 of WGM (010)
-  TCCR0B = 0b00000001;
-  //         0000 - Unused
-  //             0 - Bit 2 of WGM
-  //              001 - No clk prescale
-  OCR0A = 78;              // TOP value
-  OCR0B = 0;               // Counter
-  TIMSK0 |= (1 << OCIE0B); // Enables interrupt on compare B
-
-  // 16 BIT TIMER
-  TCCR1A = 0b00100000;
-  //         00
-  //           10, clear OCRB on compare match
-  //             00 - C not used
-  //               00 - Bits 1:0 0f (0100) CTC
-  TCCR1B = 0b00001001;
-  //         000 - Unused bits
-  //            01 - Bits 32 of CTC
-}
 
 void announceTremor(int intensity)
 {
@@ -214,4 +212,41 @@ void announceTremor(int intensity)
   CircuitPlayground.setPixelColor(2, 0, 255, 0);
   CircuitPlayground.setPixelColor(3, 0, 128, 128);
   CircuitPlayground.setPixelColor(4, 0, 0, 255);
+}
+
+// Runs every ms
+ISR(TIMER0_COMPA_vect)
+{
+  count++;
+  if (count > 5) // Counts up to 5ms 
+  {
+    // Reset counter
+    count = 0;
+    data_count++;
+    // Record accelerometer data
+    float X, Y, Z;
+    X = CircuitPlayground.motionX();
+    Y = CircuitPlayground.motionY();
+    Z = CircuitPlayground.motionZ();
+    
+    // Get the "average" as the root of the sum of squares of all dimesnions
+    float a = sqrt(X * X + Y * Y + Z * Z);
+
+    if (samplesCounter > samples)
+    {
+      samplesCounter = 0;
+    }
+    vReal[samplesCounter] = a;
+    vImag[samplesCounter] = 0;
+
+    if(data_count > 1000){ // Timer for 5S, then run FFT
+      data_count = 0;
+      calculateFFT();
+      Serial.println("5s passed");
+    }
+  }
+}
+
+void loop() {
+  checkButtons();
 }
