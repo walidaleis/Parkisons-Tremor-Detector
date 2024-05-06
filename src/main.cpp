@@ -97,22 +97,23 @@ void setupTimer()
   //           00 - Normal Port Operation
   //             00 - Unused
   //               10 - Bits 1:0 of WGM (010)
-  TCCR0B = 0b00000011; 
+  TCCR0B = 0b00000011;
   //         0000 - Unused
   //             0 - Bit 2 of WGM
   //              011 - Clk prescaler to 64
-  OCR0A = 125;              // TOP value
-  TIMSK0 = 0b00000010; 
+  OCR0A = 125; // TOP value
+  TIMSK0 = 0b00000010;
   //         00000 - Unused
   //              0 - Disable interrupts on compare match B
   //               1 - Enable interrupts on compare match A
   //                0 - Disable overflow interrupts
 }
 
-
-void checkButtons() {
+void checkButtons()
+{
   // Left button is pressed?
-  if (PIND & (1 << PIND4)) {
+  if (PIND & (1 << PIND4))
+  {
     Serial.println("LEft button pressed");
 
     // Turn on LED
@@ -120,10 +121,12 @@ void checkButtons() {
 
     // Start capture
     setupTimer();
+    delay(120);
   }
 
   // Right button pressed?
-  if (PINF & (1 << PINF6)) {
+  if (PINF & (1 << PINF6))
+  {
     Serial.println("right button pressed");
     // Turn off LED
     PORTC &= ~(1 << 7);
@@ -131,13 +134,22 @@ void checkButtons() {
     // Disable timer interrupts
     TIMSK0 = 0;
 
+    delay(120);
+
     // Clear array
-    
   }
 }
 
 void setup()
 {
+  Serial.begin(115200);
+  while (!Serial)
+    ;
+
+  CircuitPlayground.begin();
+
+  Serial.println("Ready");
+
   // Set up left button (D4) and right button (F6) as inputs
   DDRD &= ~(1 << PIND4);
   DDRF &= ~(1 << PINF6);
@@ -150,14 +162,7 @@ void setup()
   DDRC |= (1 << PINC7);
 
   // Initial Serial protocol
-  Serial.begin(115200);
-  while (!Serial);
-
-  Serial.println("Ready");
-
-  CircuitPlayground.begin();
 }
-
 
 /*
 one to three minutes of windowing
@@ -165,8 +170,12 @@ one to three minutes of windowing
 */
 void calculateFFT()
 {
+  cli();
+
   Serial.println("Frequency\tDetected\ttakes (ms)");
   Serial.println("=======================================\n");
+
+  delay(25);
 
   for (double frequency = startFrequency; frequency <= stopFrequency; frequency += step_size)
   {
@@ -193,7 +202,9 @@ void calculateFFT()
     }
     announceTremor(peakMagnitude);
 
-    double x = FFT.majorPeak();
+    double x = FFT.majorPeak(); 
+    //look at the bins individually and exclude the low freqs
+
     Serial.print(frequency);
     Serial.print(": \t\t");
     Serial.print(x, 4);
@@ -202,11 +213,13 @@ void calculateFFT()
     Serial.println(" ms");
     // delay(2000); /* Repeat after delay */
   }
-}
 
+  sei();
+}
 
 void announceTremor(int intensity)
 {
+  //Serial.print("Annoucning Tremor Intensity");
   CircuitPlayground.setPixelColor(0, 255, 0, 0);
   CircuitPlayground.setPixelColor(1, 128, 128, 0);
   CircuitPlayground.setPixelColor(2, 0, 255, 0);
@@ -217,8 +230,10 @@ void announceTremor(int intensity)
 // Runs every ms
 ISR(TIMER0_COMPA_vect)
 {
+  // Serial.print("interrupt");
+
   count++;
-  if (count > 5) // Counts up to 5ms 
+  if (count > 5) // Counts up to 5ms
   {
     // Reset counter
     count = 0;
@@ -228,25 +243,29 @@ ISR(TIMER0_COMPA_vect)
     X = CircuitPlayground.motionX();
     Y = CircuitPlayground.motionY();
     Z = CircuitPlayground.motionZ();
-    
+
     // Get the "average" as the root of the sum of squares of all dimesnions
     float a = sqrt(X * X + Y * Y + Z * Z);
 
-    if (samplesCounter > samples)
-    {
-      samplesCounter = 0;
-    }
+    //Serial.print("adding data to array");
+
     vReal[samplesCounter] = a;
     vImag[samplesCounter] = 0;
 
-    if(data_count > 1000){ // Timer for 5S, then run FFT
+    if (data_count > 1000)
+    { // Timer for 5S, then run FFT
       data_count = 0;
+      samplesCounter = 0;
       calculateFFT();
       Serial.println("5s passed");
     }
   }
 }
 
-void loop() {
+void loop()
+{
+  // Serial.print("loop");
+
   checkButtons();
+  delay(100);
 }
