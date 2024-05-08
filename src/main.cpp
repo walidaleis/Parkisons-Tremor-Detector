@@ -56,17 +56,17 @@
 /*
 These values can be changed in order to evaluate the functions
 */
-const uint16_t samples = 1000;
-const double sampling = 40;
-const uint8_t amplitude = 4;
-const double startFrequency = 3.5;
-const double stopFrequency = 7.5;
-const double step_size = 0.1;
+const uint16_t samples = 64;
+const double sampling = 66.666;
+// const double startFrequency = 3.5;
+// const double stopFrequency = 7.5;
+// const double step_size = 0.1;
 
 uint16_t samplesCounter = 0;
+float X, Y, Z;
 
-int count = 0;
-int data_count = 0;
+int count_to15 = 0;
+// int data_count = 0;
 
 // /*
 // These are the input and output vectors
@@ -114,19 +114,20 @@ void checkButtons()
   // Left button is pressed?
   if (PIND & (1 << PIND4))
   {
-    Serial.println("LEft button pressed");
+    // delay(1000);
+    Serial.println("Left button pressed");
 
     // Turn on LED
     PORTC |= (1 << 7);
 
     // Start capture
     setupTimer();
-    delay(120);
   }
 
   // Right button pressed?
   if (PINF & (1 << PINF6))
   {
+    // delay(1000);
     Serial.println("right button pressed");
     // Turn off LED
     PORTC &= ~(1 << 7);
@@ -134,7 +135,6 @@ void checkButtons()
     // Disable timer interrupts
     TIMSK0 = 0;
 
-    delay(120);
 
     // Clear array
   }
@@ -172,14 +172,14 @@ void calculateFFT()
 {
   cli();
 
-  Serial.println("Frequency\tDetected\ttakes (ms)");
-  Serial.println("=======================================\n");
+  // Serial.println("Frequency\tDetected\ttakes (ms)");
+  // Serial.println("=======================================\n");
 
-  delay(25);
+  // delay(25);
 
-  for (double frequency = startFrequency; frequency <= stopFrequency; frequency += step_size)
-  {
-    startTime = millis();
+  // for (double frequency = startFrequency; frequency <= stopFrequency; frequency += step_size)
+  // {
+    // startTime = millis();
 
     FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward); /* Weigh data */
 
@@ -187,32 +187,36 @@ void calculateFFT()
 
     FFT.complexToMagnitude(); /* Compute magnitudes */
 
-    int peakMagnitude = 0;
+    // int peakMagnitude = 0;
 
-    for (uint16_t i = 0; i < samples / 2; i++)
-    {
-      double currentFrequency = (i * sampling) / samples; // Calculate the actual frequency of the ith sample
-      if (currentFrequency >= startFrequency && currentFrequency <= stopFrequency)
-      {
-        if (vReal[i] > peakMagnitude) // Check if this is the highest magnitude within the tremor range
-        {
-          peakMagnitude = vReal[i];
-        }
-      }
-    }
-    announceTremor(peakMagnitude);
+    // for (uint16_t i = 0; i < samples / 2; i++)
+    // {
+    //   double currentFrequency = (i * sampling) / samples; // Calculate the actual frequency of the ith sample
+    //   if (currentFrequency >= startFrequency && currentFrequency <= stopFrequency)
+    //   {
+    //     if (vReal[i] > peakMagnitude) // Check if this is the highest magnitude within the tremor range
+    //     {
+    //       peakMagnitude = vReal[i];
+    //     }
+    //   }
+    // }
+    // announceTremor(peakMagnitude);
 
     double x = FFT.majorPeak(); 
     //look at the bins individually and exclude the low freqs
 
-    Serial.print(frequency);
-    Serial.print(": \t\t");
+    // Serial.print(frequency);
+    Serial.print("frequency detected: ");
     Serial.print(x, 4);
-    Serial.print("\t\t");
-    Serial.print(millis() - startTime);
-    Serial.println(" ms");
+    Serial.println();
+    // for (int i = 0; i<samples; i++) {
+    //   Serial.println(vReal[i]);
+    // }
+    // Serial.print("\t\t");
+    // Serial.print(millis() - startTime);
+    // Serial.println(" ms");
     // delay(2000); /* Repeat after delay */
-  }
+  // }
 
   sei();
 }
@@ -222,9 +226,9 @@ void announceTremor(int intensity)
   //Serial.print("Annoucning Tremor Intensity");
   CircuitPlayground.setPixelColor(0, 255, 0, 0);
   CircuitPlayground.setPixelColor(1, 128, 128, 0);
-  CircuitPlayground.setPixelColor(2, 0, 255, 0);
-  CircuitPlayground.setPixelColor(3, 0, 128, 128);
-  CircuitPlayground.setPixelColor(4, 0, 0, 255);
+  // CircuitPlayground.setPixelColor(2, 0, 255, 0);
+  // CircuitPlayground.setPixelColor(3, 0, 128, 128);
+  // CircuitPlayground.setPixelColor(4, 0, 0, 255);
 }
 
 // Runs every ms
@@ -232,14 +236,13 @@ ISR(TIMER0_COMPA_vect)
 {
   // Serial.print("interrupt");
 
-  count++;
-  if (count > 5) // Counts up to 5ms
+  count_to15++;
+  data_count++;
+  if (count_to15 == 15) // Counts up to 5ms
   {
     // Reset counter
-    count = 0;
-    data_count++;
+    count_to15 = 0;
     // Record accelerometer data
-    float X, Y, Z;
     X = CircuitPlayground.motionX();
     Y = CircuitPlayground.motionY();
     Z = CircuitPlayground.motionZ();
@@ -247,25 +250,52 @@ ISR(TIMER0_COMPA_vect)
     // Get the "average" as the root of the sum of squares of all dimesnions
     float a = sqrt(X * X + Y * Y + Z * Z);
 
+    // remove later
+    // Serial.print("X: ");
+    // Serial.print(X);
+    // Serial.print("  Y: ");
+    // Serial.print(Y);
+    // Serial.print("  Z: ");
+    // Serial.println(Z);
+  
+    // delay(1000);
     //Serial.print("adding data to array");
 
     vReal[samplesCounter] = a;
     vImag[samplesCounter] = 0;
 
-    if (data_count > 1000)
+    samplesCounter++;
+  }
+
+    // Runs approximately every second
+    if (samplesCounter == 64)
     { // Timer for 5S, then run FFT
+      // X = CircuitPlayground.motionX();
+      // Y = CircuitPlayground.motionY();
+      // Z = CircuitPlayground.motionZ();
+      // Serial.print("X: ");
+      // Serial.print(X);
+      // Serial.print("  Y: ");
+      // Serial.print(Y);
+      // Serial.print("  Z: ");
+      // Serial.println(Z);
+
       data_count = 0;
       samplesCounter = 0;
       calculateFFT();
-      Serial.println("5s passed");
+      // Serial.println("5s passed");
     }
-  }
+  
 }
 
 void loop()
 {
   // Serial.print("loop");
 
+  // float Z;
+  // Z = CircuitPlayground.motionZ();
+  // Serial.println(Z);
+  // delay(1000);
   checkButtons();
-  delay(100);
+  delay(50);
 }
