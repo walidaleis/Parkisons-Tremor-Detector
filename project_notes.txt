@@ -1,0 +1,50 @@
+// /*
+// accelerator is center of board
+//   - circled z is into the board
+
+// Buttons
+
+// Speaker for indicating tremor
+
+// Slide switch
+
+// NEO pixels
+
+// Adafruit classic library
+//   - Hello accelerometer for basic code to interface with accelerometer
+//   - intensity meter
+//   - color and intensity
+
+// Plotting with Teleplot: Serial.print(">X: ");
+
+// Teleplot shows a clear sine wave for a tremor
+
+// Fourier transform will tell us the frequency after being fed the data
+
+// Get things working with the libraries and then backdoor through the registers
+
+// Don't use anything that #includes something we don't have
+
+// Be vigilant about which timer we are using.
+
+// Testing Ideas:
+//   - Put the device on something spinning or tapping at six revolutions per second
+//   - arduino fft driver
+
+// Starting ideas:
+//   - take readings 10 times a second
+//   - check for a tremor in five second intervals
+//   - implement the algorithm
+//   - Schematic
+//   - Plan out pseudo code
+//   - Bandpass filter
+//   - How to tell if it's not a tremor
+
+// Plan:
+//   - Left Button to start measuring
+//     - lights to indicate it's running
+//   - Right Button to stop and reset
+//   - Speaker and neopixels to indicate a tremor
+
+// FFT returns values that correspond to certain freqs
+// */

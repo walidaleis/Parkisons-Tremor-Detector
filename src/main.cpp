@@ -2,56 +2,6 @@
 #include <Adafruit_CircuitPlayground.h>
 #include "Adafruit_ZeroFFT.h"
 #include "arduinoFFT.h"
-// /*
-// accelerator is center of board
-//   - circled z is into the board
-
-// Buttons
-
-// Speaker for indicating tremor
-
-// Slide switch
-
-// NEO pixels
-
-// Adafruit classic library
-//   - Hello accelerometer for basic code to interface with accelerometer
-//   - intensity meter
-//   - color and intensity
-
-// Plotting with Teleplot: Serial.print(">X: ");
-
-// Teleplot shows a clear sine wave for a tremor
-
-// Fourier transform will tell us the frequency after being fed the data
-
-// Get things working with the libraries and then backdoor through the registers
-
-// Don't use anything that #includes something we don't have
-
-// Be vigilant about which timer we are using.
-
-// Testing Ideas:
-//   - Put the device on something spinning or tapping at six revolutions per second
-//   - arduino fft driver
-
-// Starting ideas:
-//   - take readings 10 times a second
-//   - check for a tremor in five second intervals
-//   - implement the algorithm
-//   - Schematic
-//   - Plan out pseudo code
-//   - Bandpass filter
-//   - How to tell if it's not a tremor
-
-// Plan:
-//   - Left Button to start measuring
-//     - lights to indicate it's running
-//   - Right Button to stop and reset
-//   - Speaker and neopixels to indicate a tremor
-
-// FFT returns values that correspond to certain freqs
-// */
 
 /*
 These values can be changed in order to evaluate the functions
@@ -109,37 +59,6 @@ void setupTimer()
   //                0 - Disable overflow interrupts
 }
 
-void checkButtons()
-{
-  // Left button is pressed?
-  if (PIND & (1 << PIND4))
-  {
-    // delay(1000);
-    Serial.println("Left button pressed");
-
-    // Turn on LED
-    PORTC |= (1 << 7);
-
-    // Start capture
-    setupTimer();
-  }
-
-  // Right button pressed?
-  if (PINF & (1 << PINF6))
-  {
-    // delay(1000);
-    Serial.println("right button pressed");
-    // Turn off LED
-    PORTC &= ~(1 << 7);
-
-    // Disable timer interrupts
-    TIMSK0 = 0;
-
-
-    // Clear array
-  }
-}
-
 void setup()
 {
   Serial.begin(115200);
@@ -179,43 +98,43 @@ void calculateFFT()
 
   // for (double frequency = startFrequency; frequency <= stopFrequency; frequency += step_size)
   // {
-    // startTime = millis();
+  // startTime = millis();
 
-    FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward); /* Weigh data */
+  FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward); /* Weigh data */
 
-    FFT.compute(FFTDirection::Forward); /* Compute FFT */
+  FFT.compute(FFTDirection::Forward); /* Compute FFT */
 
-    FFT.complexToMagnitude(); /* Compute magnitudes */
+  FFT.complexToMagnitude(); /* Compute magnitudes */
 
-    // int peakMagnitude = 0;
+  // int peakMagnitude = 0;
 
-    // for (uint16_t i = 0; i < samples / 2; i++)
-    // {
-    //   double currentFrequency = (i * sampling) / samples; // Calculate the actual frequency of the ith sample
-    //   if (currentFrequency >= startFrequency && currentFrequency <= stopFrequency)
-    //   {
-    //     if (vReal[i] > peakMagnitude) // Check if this is the highest magnitude within the tremor range
-    //     {
-    //       peakMagnitude = vReal[i];
-    //     }
-    //   }
-    // }
-    // announceTremor(peakMagnitude);
+  // for (uint16_t i = 0; i < samples / 2; i++)
+  // {
+  //   double currentFrequency = (i * sampling) / samples; // Calculate the actual frequency of the ith sample
+  //   if (currentFrequency >= startFrequency && currentFrequency <= stopFrequency)
+  //   {
+  //     if (vReal[i] > peakMagnitude) // Check if this is the highest magnitude within the tremor range
+  //     {
+  //       peakMagnitude = vReal[i];
+  //     }
+  //   }
+  // }
+  // announceTremor(peakMagnitude);
 
-    double x = FFT.majorPeak(); 
-    //look at the bins individually and exclude the low freqs
+  double x = FFT.majorPeak();
+  // look at the bins individually and exclude the low freqs
 
-    // Serial.print(frequency);
-    Serial.print("frequency detected: ");
-    Serial.print(x, 4);
-    Serial.println();
-    // for (int i = 0; i<samples; i++) {
-    //   Serial.println(vReal[i]);
-    // }
-    // Serial.print("\t\t");
-    // Serial.print(millis() - startTime);
-    // Serial.println(" ms");
-    // delay(2000); /* Repeat after delay */
+  // Serial.print(frequency);
+  Serial.print("frequency detected: ");
+  Serial.print(x, 4);
+  Serial.println();
+  // for (int i = 0; i<samples; i++) {
+  //   Serial.println(vReal[i]);
+  // }
+  // Serial.print("\t\t");
+  // Serial.print(millis() - startTime);
+  // Serial.println(" ms");
+  // delay(2000); /* Repeat after delay */
   // }
 
   sei();
@@ -223,7 +142,7 @@ void calculateFFT()
 
 void announceTremor(int intensity)
 {
-  //Serial.print("Annoucning Tremor Intensity");
+  // Serial.print("Annoucning Tremor Intensity");
   CircuitPlayground.setPixelColor(0, 255, 0, 0);
   CircuitPlayground.setPixelColor(1, 128, 128, 0);
   // CircuitPlayground.setPixelColor(2, 0, 255, 0);
@@ -237,7 +156,7 @@ ISR(TIMER0_COMPA_vect)
   // Serial.print("interrupt");
 
   count_to15++;
-  data_count++;
+  //data_count++;
   if (count_to15 == 15) // Counts up to 5ms
   {
     // Reset counter
@@ -257,9 +176,9 @@ ISR(TIMER0_COMPA_vect)
     // Serial.print(Y);
     // Serial.print("  Z: ");
     // Serial.println(Z);
-  
+
     // delay(1000);
-    //Serial.print("adding data to array");
+    // Serial.print("adding data to array");
 
     vReal[samplesCounter] = a;
     vImag[samplesCounter] = 0;
@@ -267,35 +186,52 @@ ISR(TIMER0_COMPA_vect)
     samplesCounter++;
   }
 
-    // Runs approximately every second
-    if (samplesCounter == 64)
-    { // Timer for 5S, then run FFT
-      // X = CircuitPlayground.motionX();
-      // Y = CircuitPlayground.motionY();
-      // Z = CircuitPlayground.motionZ();
-      // Serial.print("X: ");
-      // Serial.print(X);
-      // Serial.print("  Y: ");
-      // Serial.print(Y);
-      // Serial.print("  Z: ");
-      // Serial.println(Z);
+  // Runs approximately every second
+  if (samplesCounter == 64)
+  { // Timer for 5S, then run FFT
+    // X = CircuitPlayground.motionX();
+    // Y = CircuitPlayground.motionY();
+    // Z = CircuitPlayground.motionZ();
+    // Serial.print("X: ");
+    // Serial.print(X);
+    // Serial.print("  Y: ");
+    // Serial.print(Y);
+    // Serial.print("  Z: ");
+    // Serial.println(Z);
 
-      data_count = 0;
-      samplesCounter = 0;
-      calculateFFT();
-      // Serial.println("5s passed");
-    }
-  
+    //data_count = 0;
+    samplesCounter = 0;
+    calculateFFT();
+    // Serial.println("5s passed");
+  }
 }
 
 void loop()
 {
-  // Serial.print("loop");
+  // Left button is pressed?
+  if (PIND & (1 << PIND4))
+  {
+    // delay(1000);
+    Serial.println("Left button pressed");
 
-  // float Z;
-  // Z = CircuitPlayground.motionZ();
-  // Serial.println(Z);
-  // delay(1000);
-  checkButtons();
-  delay(50);
+    // Turn on LED
+    PORTC |= (1 << 7);
+
+    // Start capture
+    setupTimer();
+  }
+
+  // Right button pressed?
+  if (PINF & (1 << PINF6))
+  {
+    // delay(1000);
+    Serial.println("right button pressed");
+    // Turn off LED
+    PORTC &= ~(1 << 7);
+
+    // Disable timer interrupts
+    TIMSK0 = 0;
+
+    // Clear array
+  }
 }
