@@ -48,3 +48,6 @@
 
 // FFT returns values that correspond to certain freqs
 // */
+
+sources:
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7602495/
