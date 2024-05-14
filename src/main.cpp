@@ -42,27 +42,27 @@ const uint8_t num_windows = 4;
 const uint8_t num_metrics = 4;
 // keeping track of the metrics in each window
 static float windowMetrics[num_windows][num_metrics];
-// columns 0-3 in the array are windows
-// rows 0-4 are metrics:
-// row 0: average frequency
-// row 1: percent of the entire window that is the 3-6Hz band
-// row 2: sum of magnitude in the 3-6Hz band
-// row 3: percent of energy in the 3-6Hz band
+
 
 uint8_t windowNum = 0;
 
 double lastDebounceTime = 0;
 
-uint8_t calculateIntensity();
-
-float alpha = 0.8;                 // Smoothing factor for the low-pass filter
-float gravity[3] = {0, 0, 0};      // To store the estimated gravity components
-float acceleration[3] = {0, 0, 0}; // To store the filtered accelerometer readings
+float alpha = 0.8;                 // smoothing factor for the low-pass filter
+float gravity[3] = {0, 0, 0};      // store the estimated gravity components
+float acceleration[3] = {0, 0, 0}; // store the filtered accelerometer readings
 
 void setupTimer()
 {
   TCCR0A = 0b00000010; // CTC count to OCR0A
+   //         00 - Normal Port Operation
+  //           00 - Normal Port Operation
+  //             00 - Unused
+  //               10 - Bits 1:0 of WGM (010)
   TCCR0B = 0b00000011;
+  //         0000 - Unused
+  //             0 - Bit 2 of WGM
+  //              011 - Clk prescaler to 64
   OCR0A = 125; // TOP value
   TIMSK0 = 0b00000010;
 }
@@ -175,16 +175,6 @@ ISR(TIMER0_COMPA_vect) // Runs every ms
                            acceleration[1] * acceleration[1] +
                            acceleration[2] * acceleration[2]);
 
-    if (false) // debug print statement
-    {
-      Serial.print("X: ");
-      Serial.print(X);
-      Serial.print("  Y: ");
-      Serial.print(Y);
-      Serial.print("  Z: ");
-      Serial.println(Z);
-    }
-
     vReal[samplesCounter] = magnitude;
     vImag[samplesCounter] = 0;
     samplesCounter++;
@@ -196,8 +186,7 @@ ISR(TIMER0_COMPA_vect) // Runs every ms
     cli(); // stopping interrupt
 
     samplesCounter = 0;
-    // Serial.println("5 seconds passed. Calculating FFT");
-    //  delay(10);
+
     calculateFFT();
 
     windowNum++;
@@ -211,15 +200,8 @@ ISR(TIMER0_COMPA_vect) // Runs every ms
   }
 }
 
-/*
-one to three minutes of windowing
-80% of movements in each window are a tremor
-*/
 void calculateFFT()
 {
-  delay(25);
-  Serial.print("Running calculateFFT():");
-  delay(25);
   //  tapering the signal edges to zero to make it more continuous and periodic
   FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward); /* Weigh data */
 
@@ -241,10 +223,8 @@ void calculateFFT()
   float peakMag = 0;      // maximum magnitude of any element
   float peakFreqBand = 0; // highest frequency in the window
   float sumEnergy = 0;
-
   float bandPeakMag = 0; // max magnitude just in our band
   float bandMagSum = 0;  // sum of magnitudes in our band
-
   float bandEnergy = 0;
 
   for (uint8_t i = 0; i < windowSamples / 2; i++)
@@ -284,12 +264,6 @@ void calculateFFT()
       }
     }
   }
-  // columns 0-3 in the array are windows
-  // rows 0-4 are metrics:
-  // row 0: average frequency in the whole window
-  // row 1: ratio of the entire window's captured freqs that is the 3-6Hz band
-  // row 2: sum of magnitude in the 3-6Hz band
-  // row 3: ratio of energy in the 3-6Hz band compared to the entire window
 
   float averageFreq = 0;
   float bandFreqPercent = 0;
@@ -309,55 +283,23 @@ void calculateFFT()
     windowMetrics[windowNum][2] = 0;
   }
   windowMetrics[windowNum][3] = bandEnergy / sumEnergy;
-
-  if (false)
-  {
-    Serial.println("Window " + windowNum + ':');
-    delay(25);
-    Serial.println("Avg Freq: ");
-    Serial.println(windowMetrics[windowNum][0]);
-    delay(25);
-    Serial.println("BandFreqPercent: ");
-    Serial.println(windowMetrics[windowNum][1]);
-    delay(25);
-    Serial.println("BandPeakMag: ");
-    Serial.println(windowMetrics[windowNum][2]);
-    delay(25);
-    Serial.println("BandEnergyPercent: ");
-    Serial.println(windowMetrics[windowNum][3]);
-  }
 }
 
 void determineTremor()
 {
   /*
-  columns 0-3 in the array are windows
-  rows 0-4 are metrics:
-  row 0: average frequency
-  row 1: percent of the entire window that is the 3-6Hz band
-  row 2: sum of magnitude in the 3-6Hz band
-  row 3: percent of energy in the 3-6Hz band
-  windowMetrics[windowNum][0] = averageFreq;
-  windowMetrics[windowNum][1] = bandFreqPercent;
-  windowMetrics[windowNum][2] = bandEnergy / sumEnergy;
-  windowMetrics[windowNum][3] = bandEnergy / sumEnergy;
-
-  tremor if:
+    ---determine tremor---
     avg freq is in the band
-    percent in band is over 80%
+    percent in band is over 30%
 
     ---determine intensity---
-    peak amplitude in band
-    energy content in band
-    energy percent is from band
+    Scales the ratio of 
   */
   float totalAvgFreq = 0;
   float percentInBand = 0;
   float totalMagnitudeInBand = 0;
   float totalEnergyPercentInBand = 0;
-  // bool isTremor = false;
 
-  Serial.println("Analyzing");
 
   for (uint8_t i = 0; i < num_windows; i++)
   {
@@ -371,27 +313,11 @@ void determineTremor()
   totalEnergyPercentInBand /= num_windows;
   totalMagnitudeInBand /= num_windows;
 
-  if (true)
-  {
-    Serial.println("Total Avg Freq: ");
-    Serial.println(totalAvgFreq);
-    delay(25);
-    Serial.println("Avg Ratio of Freqs in Band: ");
-    Serial.println(percentInBand);
-    delay(25);
-    Serial.println("Avg Peak Mag in Band: ");
-    Serial.println(totalEnergyPercentInBand);
-    delay(25);
-    Serial.println("Avg Ratio of Energy in band: ");
-    Serial.println(totalMagnitudeInBand);
-  }
-
   if (totalAvgFreq >= startFrequency && totalAvgFreq <= stopFrequency && percentInBand > 0.25)
   {
     uint8_t intensity = totalEnergyPercentInBand * 70;
     if (intensity < 10)
     {
-      Serial.print("Tremor intensity 1");
       for (uint8_t i = 0; i < 10; i++)
       {
         CircuitPlayground.setPixelColor(i, 0, 0, 0);
@@ -402,62 +328,46 @@ void determineTremor()
     }
     else if (intensity >= 10 && intensity < 20)
     {
-      Serial.print("Tremor intensity 2");
       for (uint8_t i = 0; i < 10; i++)
       {
         CircuitPlayground.setPixelColor(i, 0, 0, 0);
       }
       CircuitPlayground.setPixelColor(0, 255, 0, 0);
       CircuitPlayground.setPixelColor(9, 255, 0, 0);
-
       CircuitPlayground.setPixelColor(1, 255, 0, 0);
       CircuitPlayground.setPixelColor(8, 255, 0, 0);
-      
       CircuitPlayground.playTone(1200, 200);
       CircuitPlayground.playTone(1200, 200);
     }
     else if (intensity >= 20 && intensity < 30)
     {
-      Serial.print("Tremor intensity 3");
       for (uint8_t i = 0; i < 10; i++)
       {
         CircuitPlayground.setPixelColor(i, 0, 0, 0);
       }
       CircuitPlayground.setPixelColor(0, 255, 0, 0);
       CircuitPlayground.setPixelColor(9, 255, 0, 0);
-
       CircuitPlayground.setPixelColor(1, 255, 0, 0);
       CircuitPlayground.setPixelColor(8, 255, 0, 0);
-
-
       CircuitPlayground.setPixelColor(2, 255, 0, 0);
       CircuitPlayground.setPixelColor(7, 255, 0, 0);
-
-      
-      
       CircuitPlayground.playTone(1400, 200);
       CircuitPlayground.playTone(1400, 200);
     }
     else if (intensity >= 30)
     {
-      Serial.print("Tremor intensity 4");
       for (uint8_t i = 0; i < 10; i++)
       {
         CircuitPlayground.setPixelColor(i, 0, 0, 0);
       }
       CircuitPlayground.setPixelColor(0, 255, 0, 0);
       CircuitPlayground.setPixelColor(9, 255, 0, 0);
-
       CircuitPlayground.setPixelColor(1, 255, 0, 0);
       CircuitPlayground.setPixelColor(8, 255, 0, 0);
-
-
       CircuitPlayground.setPixelColor(2, 255, 0, 0);
       CircuitPlayground.setPixelColor(7, 255, 0, 0);
-
       CircuitPlayground.setPixelColor(3, 255, 0, 0);
       CircuitPlayground.setPixelColor(6, 255, 0, 0);
-
       CircuitPlayground.playTone(1600, 200);
       CircuitPlayground.playTone(1600, 200);
     }
