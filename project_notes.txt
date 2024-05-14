@@ -51,3 +51,22 @@
 
 sources:
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7602495/
+
+timer
+void setupTimer()
+{
+  // Serial.println("Starting timer");
+  //  8 Bit Counter
+  TCCR0A = 0b00000010; // CTC count to OCR0A
+  //         00 - Normal Port Operation
+  //           00 - Normal Port Operation
+  //             00 - Unused
+  //               10 - Bits 1:0 of WGM (010)
+  TCCR0B = 0b00000011;
+  //         0000 - Unused
+  //             0 - Bit 2 of WGM
+  //              011 - Clk prescaler to 64
+  OCR0A = 125; // TOP value
+  TIMSK0 = 0b00000010;
+
+}
