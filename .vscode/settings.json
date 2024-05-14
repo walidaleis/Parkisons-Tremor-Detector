@@ -1,3 +1,17 @@
 {
-    "cmake.sourceDirectory": "C:/Users/camer/Desktop/Education/4. Embeded Systems/4. Embeded - Projects/Embedded Challange New Repo/Parkisons-Tremor-Detector/.pio/libdeps/circuitplay_classic/Adafruit BusIO"
+    "cmake.sourceDirectory": "C:/Users/camer/Desktop/Education/4. Embeded Systems/4. Embeded - Projects/Embedded Challange New Repo/Parkisons-Tremor-Detector/.pio/libdeps/circuitplay_classic/Adafruit BusIO",
+    "cSpell.words": [
+        "Adafruit",
+        "Bandpass",
+        "DDRD",
+        "DDRF",
+        "freqs",
+        "neopixels",
+        "PIND",
+        "PORTD",
+        "prescaler",
+        "TCCR",
+        "Teleplot",
+        "TIMSK"
+    ]
 }
