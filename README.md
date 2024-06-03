@@ -14,10 +14,8 @@ We collected:
 
 We then used the ratio and multiplied it by the scaling factor to determine the intensity of the tremor, lighting up the board's NeoPixels and playing a tone as needed.
 
-
-References:
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7602495/
-
-
 ### Contributors
 Cameron Bedard, Walid Al-Eisawi, Darren Kuo
+
+### References:
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7602495/
